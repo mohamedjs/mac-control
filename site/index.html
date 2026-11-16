@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mac Control</title>
+<meta name="description" content="Drive your Linux laptop with your Mac's trackpad and keyboard over Wi-Fi. About 1 ms of work on the laptop, nothing to install on the Mac.">
+<meta property="og:title" content="Mac Control — your Mac's trackpad, on your Linux laptop">
+<meta property="og:description" content="Open one link in Chrome on the Mac and drive the Linux machine next to it. Millisecond latency, pairing key, open source.">
+<meta property="og:image" content="assets/architecture.webp">
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800&family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <img src="assets/icon.svg" alt="" width="36" height="36">
+    <b>Mac Control</b>
+    <span class="sp"></span>
+    <a class="navlink" href="#how" data-i18n="nav.how">How it works</a>
+    <a class="navlink" href="#start" data-i18n="nav.start">Get started</a>
+    <div class="seg" role="group" aria-label="Language">
+      <button data-lang="en" aria-pressed="true">EN</button>
+      <button data-lang="ar" aria-pressed="false">ع</button>
+    </div>
+    <button class="icon" id="theme" aria-label="Toggle theme">◐</button>
+    <a class="btn ghost" href="https://github.com/mohamedjs/mac-control">GitHub</a>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <p class="eyebrow" data-i18n="hero.eyebrow">Open source · Linux X11 · Chrome on macOS</p>
+      <h1 data-i18n="hero.title">Your Mac's trackpad, on your Linux laptop.</h1>
+      <p class="lead" data-i18n="hero.lead">Open one link in Chrome on the Mac, click once, and its trackpad, clicks, two-finger scroll and keyboard drive the Linux machine next to it. Nothing to install on the Mac.</p>
+      <div class="cta">
+        <a class="btn" href="#start" data-i18n="hero.cta">Get started</a>
+        <a class="btn ghost" href="https://github.com/mohamedjs/mac-control" data-i18n="hero.src">View source</a>
+      </div>
+    </div>
+
+    <div class="stage" aria-hidden="true">
+      <div class="dev mac">
+        <div class="screen"><span class="tag">macOS · Chrome</span><div class="hud">≈1.2 ms · p95 2.4 ms</div></div>
+        <div class="base"></div>
+        <div class="pad"><span class="finger"></span></div>
+      </div>
+      <div class="beam"><i></i><i></i><i></i></div>
+      <div class="dev linux">
+        <div class="screen"><span class="tag">Linux · X11</span><span class="cursor"></span></div>
+        <div class="base"></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="stats">
+    <div class="stat"><b>1.15 ms</b><span data-i18n="stat.1">send → cursor moved</span></div>
+    <div class="stat"><b>0.12 ms</b><span data-i18n="stat.2">to inject one move</span></div>
+    <div class="stat"><b>~12 µs</b><span data-i18n="stat.3">server work per event</span></div>
+    <div class="stat"><b>0</b><span data-i18n="stat.4">apps to install on the Mac</span></div>
+  </section>
+  <p class="fine" data-i18n="stat.note">Measured on the laptop over its own Wi-Fi address. The Wi-Fi hop to your Mac adds roughly 1–5 ms one way; the page shows your real numbers live.</p>
+
+  <section id="how">
+    <h2 data-i18n="how.title">How it works</h2>
+    <div class="cards">
+      <article class="card">
+        <span class="num">1</span>
+        <h3 data-i18n="how.1.t">Capture on the Mac</h3>
+        <p data-i18n="how.1.p">The /control page locks the pointer and reads raw trackpad deltas and physical key codes, so your Linux keyboard layout decides the characters.</p>
+      </article>
+      <article class="card">
+        <span class="num">2</span>
+        <h3 data-i18n="how.2.t">Tiny frames, no waiting</h3>
+        <p data-i18n="how.2.p">Each event goes out right away over a WebSocket with Nagle off. A ping every 100 ms measures latency and keeps both Wi-Fi radios awake.</p>
+      </article>
+      <article class="card">
+        <span class="num">3</span>
+        <h3 data-i18n="how.3.t">Injected in ~0.1 ms</h3>
+        <p data-i18n="how.3.p">The laptop sums moves that land in the same tick and injects them through XTest with libnut's 10 ms default delay switched off.</p>
+      </article>
+    </div>
+    <figure class="diagram">
+      <img src="assets/architecture.webp" alt="Architecture: Chrome on the Mac sends WebSocket frames to the mac-control server, which injects input through libnut into X11" loading="lazy" width="1920" height="1050">
+      <figcaption data-i18n="how.cap">Architecture (Excalidraw source in docs/).</figcaption>
+    </figure>
+  </section>
+
+  <section class="features">
+    <h2 data-i18n="feat.title">Built to feel local</h2>
+    <ul class="grid">
+      <li><b data-i18n="feat.1.t">⌘ acts as Ctrl</b><span data-i18n="feat.1.p">⌘C, ⌘V and ⌘Z work the way your hands expect. One switch turns it off.</span></li>
+      <li><b data-i18n="feat.2.t">Smooth trackpad scroll</b><span data-i18n="feat.2.p">Pixel-precise scroll deltas become wheel notches, with sub-notch remainders kept.</span></li>
+      <li><b data-i18n="feat.3.t">No stuck keys</b><span data-i18n="feat.3.p">Every held key and button is released if Wi-Fi drops or you switch away.</span></li>
+      <li><b data-i18n="feat.4.t">Pairing key</b><span data-i18n="feat.4.p">The socket needs a secret key and rejects other websites, so no page on your network can type on your laptop.</span></li>
+      <li><b data-i18n="feat.5.t">Live latency</b><span data-i18n="feat.5.p">One-way estimate, average and p95 round trip, plus the time the laptop spent on each event.</span></li>
+      <li><b data-i18n="feat.6.t">Hold Esc to leave</b><span data-i18n="feat.6.p">Full keyboard capture in fullscreen; hold Esc and the Mac is yours again.</span></li>
+    </ul>
+  </section>
+
+  <section id="start">
+    <h2 data-i18n="start.title">Get started</h2>
+    <div class="steps">
+      <div class="step">
+        <h3 data-i18n="start.1">On the Linux machine</h3>
+        <pre><code>git clone https://github.com/mohamedjs/mac-control.git
+cd mac-control && npm install
+npm start</code></pre>
+        <p data-i18n="start.1p">It prints a pairing link like http://192.168.1.x:3030/control#t=… — the local page at http://127.0.0.1:3030 has a Copy button.</p>
+      </div>
+      <div class="step">
+        <h3 data-i18n="start.2">On the Mac, once</h3>
+        <p data-i18n="start.2p">In Chrome open chrome://flags/#unsafely-treat-insecure-origin-as-secure, add http://&lt;laptop-ip&gt;:3030, enable it and relaunch. This unlocks raw pointer input and ⌘W / Esc capture.</p>
+      </div>
+      <div class="step">
+        <h3 data-i18n="start.3">Take control</h3>
+        <p data-i18n="start.3p">Open the pairing link, click Take control. Hold Esc to give control back.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <h2 data-i18n="faq.title">Good to know</h2>
+    <details><summary data-i18n="faq.1.q">Why not under 10 ms on my Wi-Fi?</summary><p data-i18n="faq.1.a">Wi-Fi power saving is the usual cause of 20–200 ms spikes. Turn it off on the laptop: nmcli connection modify "&lt;wifi&gt;" 802-11-wireless.powersave 2. Use 5 GHz or Ethernet when you can.</p></details>
+    <details><summary data-i18n="faq.2.q">Does it work on Wayland?</summary><p data-i18n="faq.2.a">Input injection uses XTest, so log in with an Xorg session ("Ubuntu on Xorg"). Under Wayland only XWayland apps receive input.</p></details>
+    <details><summary data-i18n="faq.3.q">Which shortcuts stay on the Mac?</summary><p data-i18n="faq.3.a">⌘Tab, ⌘Space and ⌘Q belong to macOS — no web page can capture them. Everything else reaches the laptop.</p></details>
+    <details><summary data-i18n="faq.4.q">Safari?</summary><p data-i18n="faq.4.a">Use Chrome (or another Chromium browser). Safari has no Keyboard Lock, so many shortcuts would stay on the Mac.</p></details>
+  </section>
+
+  <footer>
+    <span>Mac Control · MIT</span>
+    <a href="https://github.com/mohamedjs/mac-control">github.com/mohamedjs/mac-control</a>
+  </footer>
+</div>
+<script src="site.js"></script>
+</body>
+</html>

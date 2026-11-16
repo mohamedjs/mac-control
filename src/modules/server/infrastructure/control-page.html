@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mac Control</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --text: #0f172a; --muted: #64748b;
+    --line: #e2e8f0; --accent: #0369a1; --good: #15803d; --warn: #b45309; --bad: #b91c1c;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b0f17; --surface: #131a26; --text: #e5e7eb; --muted: #94a3b8;
+      --line: #263042; --accent: #38bdf8; --good: #4ade80; --warn: #fbbf24; --bad: #f87171;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b0f17; --surface: #131a26; --text: #e5e7eb; --muted: #94a3b8;
+    --line: #263042; --accent: #38bdf8; --good: #4ade80; --warn: #fbbf24; --bad: #f87171;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--text); font: 15px/1.5 var(--font);
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+    user-select: none; -webkit-user-select: none; overflow: hidden;
+  }
+  .panel {
+    width: 100%; max-width: 520px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 24px; display: grid; gap: 18px;
+  }
+  h1 { font-size: 18px; font-weight: 650; display: flex; align-items: center; gap: 10px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.on { background: var(--good); } .dot.off { background: var(--bad); }
+  .sub { color: var(--muted); font-size: 13px; }
+  .go {
+    appearance: none; border: 0; border-radius: 10px; padding: 16px; font: 600 16px var(--font);
+    background: var(--accent); color: #fff; cursor: pointer;
+  }
+  .go:disabled { opacity: .45; cursor: default; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .stat { border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+  .stat b { display: block; font: 600 18px var(--mono); font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .good { color: var(--good); } .warn { color: var(--warn); } .bad { color: var(--bad); }
+  .opts { display: grid; gap: 10px; font-size: 14px; }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .row input[type=range] { width: 170px; }
+  .row output { font: 13px var(--mono); width: 40px; text-align: right; color: var(--muted); }
+  .note { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; }
+  .note code { font: 12px var(--mono); background: var(--bg); padding: 1px 5px; border-radius: 4px; word-break: break-all; }
+  .tok { display: flex; gap: 8px; } .tok input {
+    flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: 13px var(--mono);
+  }
+  #hud {
+    position: fixed; top: 10px; right: 10px; padding: 6px 10px; border-radius: 8px;
+    background: rgba(0,0,0,.72); color: #fff; font: 12px var(--mono); display: none; pointer-events: none;
+  }
+  body.captured .panel { display: none; }
+  body.captured #hud { display: block; }
+  body.captured { cursor: none; background: #000; }
+  #cap { display: none; color: #94a3b8; font-size: 14px; text-align: center; }
+  body.captured #cap { display: block; }
+  @media (max-width: 480px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+  <div class="panel" id="panel">
+    <div>
+      <h1><span class="dot" id="dot"></span><span id="title">Connecting…</span></h1>
+      <div class="sub" id="subtitle">Drive your laptop with this Mac's trackpad and keyboard.</div>
+    </div>
+
+    <div class="tok" id="tokRow" hidden>
+      <input id="tokIn" placeholder="Paste the key from the laptop dashboard" autocomplete="off">
+      <button class="go" style="padding:10px 14px" id="tokBtn">Connect</button>
+    </div>
+
+    <button class="go" id="go" disabled>Click to take control</button>
+
+    <div class="stats">
+      <div class="stat"><span>Latency</span><b id="sOne">–</b></div>
+      <div class="stat"><span>Ping avg</span><b id="sAvg">–</b></div>
+      <div class="stat"><span>Ping p95</span><b id="sP95">–</b></div>
+      <div class="stat"><span>Laptop work</span><b id="sSrv">–</b></div>
+    </div>
+
+    <div class="opts">
+      <label class="row"><span>⌘ Command acts as Ctrl (⌘C / ⌘V copy-paste)</span><input type="checkbox" id="swap" checked></label>
+      <label class="row"><span>Pointer speed</span><span><input type="range" id="speed" min="0.3" max="4" step="0.1" value="1.4"> <output id="speedV"></output></span></label>
+      <label class="row"><span>Scroll speed</span><span><input type="range" id="scroll" min="0.2" max="4" step="0.1" value="1"> <output id="scrollV"></output></span></label>
+      <label class="row"><span>Reverse scroll direction</span><input type="checkbox" id="invert"></label>
+    </div>
+
+    <div class="note" id="note">
+      To let go, <b>press and hold Esc</b> (or press Esc once if full keyboard capture is off).
+      ⌘Tab, ⌘Space and ⌘Q stay with macOS — a web page can't capture those.
+    </div>
+  </div>
+
+  <div id="cap">Controlling the laptop · hold Esc to release</div>
+  <div id="hud"></div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const MODS = new Set(['ShiftLeft','ShiftRight','ControlLeft','ControlRight','AltLeft','AltRight','MetaLeft','MetaRight']);
+
+  // ── settings (per-viewer convenience only) ──────────────────────────────
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('rc.' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('rc.' + k, JSON.stringify(v)); } catch {} },
+  };
+  const opts = { swap: store.get('swap', true), speed: store.get('speed', 1.4), scroll: store.get('scroll', 1), invert: store.get('invert', false) };
+  $('swap').checked = opts.swap; $('speed').value = opts.speed; $('scroll').value = opts.scroll; $('invert').checked = opts.invert;
+  const syncOut = () => { $('speedV').textContent = (+opts.speed).toFixed(1); $('scrollV').textContent = (+opts.scroll).toFixed(1); };
+  syncOut();
+  for (const id of ['swap', 'invert']) $(id).addEventListener('change', (e) => { opts[id] = e.target.checked; store.set(id, opts[id]); });
+  for (const id of ['speed', 'scroll']) $(id).addEventListener('input', (e) => { opts[id] = +e.target.value; store.set(id, opts[id]); syncOut(); });
+
+  // ── token: URL fragment (never sent to the server in a request line) ────
+  let token = new URLSearchParams(location.hash.slice(1)).get('t') || store.get('token', '');
+  if (location.hash) history.replaceState(null, '', location.pathname);
+  if (token) store.set('token', token);
+
+  // ── connection ──────────────────────────────────────────────────────────
+  let ws = null, ready = false, retry = 300;
+  const send = (o) => { if (ready) ws.send(JSON.stringify(o)); };
+
+  function connect() {
+    if (!token) { $('tokRow').hidden = false; setTitle('Enter the key from the laptop', 'off'); return; }
+    ws = new WebSocket(`ws://${location.host}/control/ws?t=${encodeURIComponent(token)}`);
+    ws.onopen = () => { ready = true; retry = 300; };
+    ws.onmessage = (ev) => {
+      const m = JSON.parse(ev.data);
+      if (m.t === 'hello') {
+        $('tokRow').hidden = true;
+        setTitle(`Connected to ${m.hostname}`, m.available ? 'on' : 'off');
+        $('subtitle').textContent = m.available
+          ? 'Ready. Your trackpad and keyboard will drive the laptop.'
+          : 'Connected, but the laptop cannot inject input (no X11 display?).';
+        $('go').disabled = !m.available;
+      } else if (m.t === 'pong') onPong(m);
+    };
+    let opened = false;
+    ws.addEventListener('open', () => { opened = true; });
+    ws.onclose = () => {
+      ready = false; $('go').disabled = true;
+      if (locked()) document.exitPointerLock();
+      // Refused before opening = wrong/old key (or laptop offline): let them paste a new one.
+      if (!opened) $('tokRow').hidden = false;
+      setTitle(opened ? 'Reconnecting…' : 'Can\'t connect — laptop offline or key wrong', 'off');
+      setTimeout(connect, retry); retry = Math.min(retry * 2, 3000);
+    };
+  }
+  $('tokBtn').onclick = () => { token = $('tokIn').value.trim(); store.set('token', token); connect(); };
+
+  function setTitle(text, state) { $('title').textContent = text; $('dot').className = 'dot ' + (state || ''); }
+
+  // ── latency measurement + Wi-Fi keep-awake ──────────────────────────────
+  // While controlling, a tiny ping every 100 ms both measures round-trip time
+  // and stops the Wi-Fi radios from dozing between packets (a classic source
+  // of 20–200 ms spikes).
+  const pending = new Map(); const rtts = []; let seq = 0, srvUs = 0, evRate = 0;
+  function ping() { if (!ready) return; const i = ++seq; pending.set(i, performance.now()); send({ t: 'p', i }); }
+  function onPong(m) {
+    const t0 = pending.get(m.i); if (t0 === undefined) return; pending.delete(m.i);
+    rtts.push(performance.now() - t0); if (rtts.length > 200) rtts.shift();
+    if (m.events) { srvUs = m.avgUs; evRate = m.events; }
+    render();
+  }
+  function render() {
+    if (!rtts.length) return;
+    const last = rtts[rtts.length - 1];
+    const avg = rtts.reduce((a, b) => a + b, 0) / rtts.length;
+    const p95 = [...rtts].sort((a, b) => a - b)[Math.floor(rtts.length * 0.95)] ?? last;
+    const one = avg / 2;
+    const cls = (v) => (v <= 10 ? 'good' : v <= 25 ? 'warn' : 'bad');
+    $('sOne').textContent = one.toFixed(1) + 'ms'; $('sOne').className = cls(one);
+    $('sAvg').textContent = avg.toFixed(1) + 'ms'; $('sAvg').className = cls(avg);
+    $('sP95').textContent = p95.toFixed(1) + 'ms'; $('sP95').className = cls(p95);
+    $('sSrv').textContent = srvUs ? srvUs.toFixed(0) + 'µs' : '–';
+    $('hud').textContent = `≈${one.toFixed(1)} ms one-way · ping ${avg.toFixed(1)} / p95 ${p95.toFixed(1)} ms`;
+  }
+  let pingTimer = setInterval(ping, 1000);
+  const setPingRate = (ms) => { clearInterval(pingTimer); pingTimer = setInterval(ping, ms); };
+
+  // ── capture ─────────────────────────────────────────────────────────────
+  const canLockKeys = !!(navigator.keyboard && navigator.keyboard.lock);
+  const locked = () => document.pointerLockElement === document.body;
+  if (!canLockKeys) {
+    $('subtitle').insertAdjacentHTML('afterend', `<div class="sub warn" style="margin-top:6px"><b>Frame-aligned mode:</b>
+      moves wait for the next screen refresh (up to ~16 ms) and ⌘W/Esc stay with Chrome. Add the Chrome flag below for raw input.</div>`);
+    $('note').innerHTML += `<br><br><b>Tip for full capture (⌘W, ⌘T, Esc, lowest latency):</b> in Chrome open
+      <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>, add <code>${location.origin}</code>,
+      enable it and relaunch Chrome.`;
+  }
+
+  $('go').onclick = async () => {
+    try {
+      if (canLockKeys) {
+        await document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+        await navigator.keyboard.lock().catch(() => {});
+      }
+      await document.body.requestPointerLock({ unadjustedMovement: false });
+    } catch {
+      try { await document.body.requestPointerLock(); } catch {}
+    }
+  };
+
+  document.addEventListener('pointerlockchange', () => {
+    if (locked()) {
+      document.body.classList.add('captured'); setPingRate(100);
+    } else {
+      releaseAll();
+      document.body.classList.remove('captured'); setPingRate(1000);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      try { navigator.keyboard?.unlock(); } catch {}
+    }
+  });
+  window.addEventListener('blur', () => { if (locked()) document.exitPointerLock(); releaseAll(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) releaseAll(); });
+
+  // ── pointer ─────────────────────────────────────────────────────────────
+  // pointerrawupdate fires as soon as the OS delivers motion, instead of
+  // being batched to the next display frame (secure contexts only).
+  const moveEvt = ('onpointerrawupdate' in window) && window.isSecureContext ? 'pointerrawupdate' : 'mousemove';
+  document.addEventListener(moveEvt, (e) => {
+    if (!locked() || (!e.movementX && !e.movementY)) return;
+    send({ t: 'm', x: e.movementX * opts.speed, y: e.movementY * opts.speed });
+  }, { passive: true });
+
+  const BTN = ['left', 'middle', 'right'];
+  document.addEventListener('mousedown', (e) => { if (locked() && BTN[e.button]) { e.preventDefault(); send({ t: 'bd', b: BTN[e.button] }); } });
+  document.addEventListener('mouseup', (e) => { if (locked() && BTN[e.button]) { e.preventDefault(); send({ t: 'bu', b: BTN[e.button] }); } });
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.addEventListener('wheel', (e) => {
+    if (!locked()) return;
+    e.preventDefault();
+    const k = opts.scroll * (opts.invert ? -1 : 1);
+    send({ t: 'w', x: e.deltaX * k, y: e.deltaY * k, mode: e.deltaMode });
+  }, { passive: false });
+
+  // ── keyboard ────────────────────────────────────────────────────────────
+  const held = new Set();          // codes we told the laptop are down
+  let metaDown = false;
+  const mapCode = (c) => {
+    if (!opts.swap) return c;
+    if (c === 'MetaLeft') return 'ControlLeft';
+    if (c === 'MetaRight') return 'ControlRight';
+    if (c === 'ControlLeft') return 'MetaLeft';
+    if (c === 'ControlRight') return 'MetaRight';
+    return c;
+  };
+
+  document.addEventListener('keydown', (e) => {
+    if (!locked()) return;
+    e.preventDefault(); e.stopPropagation();
+    if (e.code === 'MetaLeft' || e.code === 'MetaRight') metaDown = true;
+    const code = mapCode(e.code);
+    // ⌘-combos are sent as taps, so their repeats must be taps too (⌘⌫, ⌘← held).
+    if (e.repeat) { if (metaDown && !MODS.has(e.code)) { send({ t: 'kd', c: code }); send({ t: 'ku', c: code }); } return; }
+    if (e.code === 'CapsLock') { send({ t: 'kd', c: code }); send({ t: 'ku', c: code }); return; }
+    // macOS never sends keyup for other keys while ⌘ is held: tap them instead.
+    if (metaDown && !MODS.has(e.code)) { send({ t: 'kd', c: code }); send({ t: 'ku', c: code }); return; }
+    held.add(code); send({ t: 'kd', c: code });
+  }, true);
+
+  document.addEventListener('keyup', (e) => {
+    if (!locked()) return;
+    e.preventDefault(); e.stopPropagation();
+    const code = mapCode(e.code);
+    if (e.code === 'CapsLock') { send({ t: 'kd', c: code }); send({ t: 'ku', c: code }); return; }
+    if (e.code === 'MetaLeft' || e.code === 'MetaRight') {
+      metaDown = false;
+      // Anything still "held" while ⌘ was down may never get its keyup.
+      for (const c of [...held]) if (!MODS.has(c)) { send({ t: 'ku', c }); held.delete(c); }
+    }
+    held.delete(code); send({ t: 'ku', c: code });
+  }, true);
+
+  function releaseAll() { held.clear(); metaDown = false; send({ t: 'r' }); }
+
+  connect();
+})();
+</script>
+</body>
+</html>

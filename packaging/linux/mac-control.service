@@ -1,0 +1,19 @@
+# User service: starts mac-control with your desktop session.
+#   mkdir -p ~/.config/systemd/user
+#   sed "s|@APP_DIR@|$PWD|" packaging/linux/mac-control.service > ~/.config/systemd/user/mac-control.service
+#   systemctl --user daemon-reload && systemctl --user enable --now mac-control
+[Unit]
+Description=Mac Control — drive this machine from your Mac
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env node @APP_DIR@/bin/mac-control.js start
+Restart=on-failure
+RestartSec=2
+# Input injection needs the X11 display of your session.
+Environment=DISPLAY=:0
+
+[Install]
+WantedBy=graphical-session.target

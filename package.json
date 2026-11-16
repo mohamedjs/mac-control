@@ -1,0 +1,32 @@
+{
+  "name": "mac-control",
+  "version": "1.0.0",
+  "description": "Drive a Linux machine from your Mac's trackpad and keyboard over Wi-Fi, with millisecond latency. Nothing to install on the Mac.",
+  "type": "module",
+  "main": "./src/main.js",
+  "bin": {
+    "mac-control": "./bin/mac-control.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node bin/mac-control.js start",
+    "link": "node bin/mac-control.js link",
+    "doctor": "node bin/mac-control.js doctor",
+    "test": "node --test test/*.test.js",
+    "diagram": "node docs/diagram/render.mjs docs"
+  },
+  "keywords": ["remote-control", "kvm", "mac", "linux", "trackpad", "keyboard", "low-latency"],
+  "author": "Mohamed Mahmoud",
+  "license": "MIT",
+  "homepage": "https://mohamedjs.github.io/mac-control/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mohamedjs/mac-control.git"
+  },
+  "dependencies": {
+    "@nut-tree-fork/libnut": "4.2.6",
+    "ws": "^8.18.0"
+  }
+}
